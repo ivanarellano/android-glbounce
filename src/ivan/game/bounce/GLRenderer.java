@@ -12,6 +12,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.opengl.GLSurfaceView;
+import android.opengl.GLU;
 import android.opengl.GLUtils;
 import android.util.Log;
 
@@ -20,9 +21,7 @@ class GLRenderer implements GLSurfaceView.Renderer {
 	public GLSurfaceViewInput mSV;
 	
 	public GLSpriteBall[] mBallSprites;
-	//public GLRectangle[] mRectangles;
-	
-	public GLRectangle mTestRect;
+	public GLRectangle mBlockingRect;
 	
 	public int[] mTextureNameWorkspace;
 	public int[] mCropWorkspace;
@@ -32,7 +31,7 @@ class GLRenderer implements GLSurfaceView.Renderer {
 		mContext = context;
 		mSV = parentView;
 		
-		mTestRect = new GLRectangle(32.0f, 64.0f);
+		mBlockingRect = new GLRectangle(32.0f, 64.0f);
 		
 		mTextureNameWorkspace = new int[1];
 		mCropWorkspace = new int[4];
@@ -45,7 +44,6 @@ class GLRenderer implements GLSurfaceView.Renderer {
         gl.glShadeModel(GL10.GL_FLAT);
         gl.glEnable(GL10.GL_BLEND);
         gl.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
-		gl.glEnable(GL10.GL_TEXTURE_2D);
 
 		gl.glDisable(GL10.GL_DEPTH_TEST);
 		gl.glDisable(GL10.GL_DITHER);
@@ -63,17 +61,6 @@ class GLRenderer implements GLSurfaceView.Renderer {
 				mBallSprites[i].oldPos.y = mBallSprites[i].pos.y;
 			}
 		}
-		
-		/*
-		if(mRectangles != null) {
-			Log.i("Info", "LENGTH: " + mRectangles.length);
-			for(short i = 0; i < mRectangles.length; i++) {
-				mRectangles[i].pos.x = (float)(Math.random() * (mSV.mViewWidth - mRectangles[i].width));
-				mRectangles[i].pos.y = (float)(Math.random() * (mSV.mViewHeight - mRectangles[i].height));
-				Log.i("Pos", "POSITION " + i + ": " + mRectangles[i].pos.x + " / " + mRectangles[i].pos.y);
-			}
-		}
-		*/
     }
 
     public void onSurfaceChanged(GL10 gl, int w, int h) {
@@ -84,31 +71,22 @@ class GLRenderer implements GLSurfaceView.Renderer {
 
 		gl.glMatrixMode(GL10.GL_PROJECTION);
 		gl.glLoadIdentity();
-		gl.glOrthof(0.0f, w, 0.0f, h, -1.0f, 1.0f);
+		GLU.gluOrtho2D(gl, 0.0f, w, h, 0.0f);
     }
 
     public void onDrawFrame(GL10 gl) {
     	gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
         gl.glMatrixMode(GL10.GL_MODELVIEW);
         
-        mTestRect.draw(gl);
+        mBlockingRect.draw(gl);
         
-		//if(mAnimate)
-		//	mSV.queueEvent(mSV.mPhysics);        
+		if(mAnimate)
+			mSV.queueEvent(mSV.mPhysics);        
         
-		/*
 		if(mBallSprites != null) {
 			for(short i = 0; i < mBallSprites.length; i++)
 				mBallSprites[i].draw(gl);
-		}
-		*/
-		
-        /*
-		if(mRectangles != null) {
-			for(short i = 0; i < mRectangles.length; i++)
-				mRectangles[i].draw(gl);
-		}
-		*/		
+		}	
     }
 
 	/**

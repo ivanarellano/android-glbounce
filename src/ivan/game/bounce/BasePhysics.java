@@ -8,6 +8,6 @@ public class BasePhysics {
 	public BasePhysics() {
 		COEFFICIENT_OF_RESTITUTION = 0.8f;
 		FRICTION = 0.7f;
-		MASS = 400.0f;
+		MASS = 500.0f;
 	}
 }

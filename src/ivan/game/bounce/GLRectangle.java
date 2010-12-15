@@ -8,13 +8,10 @@ import javax.microedition.khronos.opengles.GL10;
 
 public class GLRectangle extends Renderable {
     public FloatBuffer mVerticesBuffer;
-    public FloatBuffer mTextureBuffer;
     public ByteBuffer mIndicesBuffer;
-    public float PSIZE = 32.0f;
 
 	public GLRectangle(float w, float h) {
 		super();
-		
 		
 		float rectangle[] = {
 			0.0f, 0.0f, 0.0f,
@@ -63,9 +60,8 @@ public class GLRectangle extends Renderable {
         
         gl.glPushMatrix();
         gl.glLoadIdentity();
-        gl.glColor4f(1.0f, 0.5f, 0.5f, 1.0f);
-        gl.glTranslatef(pos.x, pos.y, 0.5f);
-		gl.glDrawElements(GL10.GL_TRIANGLES, mIndicesBuffer.capacity(), GL10.GL_UNSIGNED_BYTE, mIndicesBuffer);
+        gl.glTranslatef(pos.x, pos.y, 0.0f);
+		gl.glDrawElements(GL10.GL_TRIANGLES, 6, GL10.GL_UNSIGNED_BYTE, mIndicesBuffer);
 		gl.glPopMatrix();
 		
 		gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);

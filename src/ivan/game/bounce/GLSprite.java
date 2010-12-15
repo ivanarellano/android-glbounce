@@ -19,11 +19,15 @@ public class GLSprite extends Renderable {
         mResourceID = resourceID;
     }
     
-	public void draw(GL10 gl) {      
+	public void draw(GL10 gl) {
+		gl.glEnable(GL10.GL_TEXTURE_2D);
+		
 		// Bind the texture
         gl.glBindTexture(GL10.GL_TEXTURE_2D, mTextureHandle);
 
 		((GL11Ext) gl).glDrawTexfOES(pos.x, pos.y, pos.z, (float)width, (float)height);
+		
+		gl.glDisable(GL10.GL_TEXTURE_2D);
 	}
     
 }

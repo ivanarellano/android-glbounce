@@ -12,9 +12,12 @@ import android.os.SystemClock;
 
 public class VerletPhysics implements Runnable{
 	public GLSurfaceViewInput mSV;
-	public Renderable[] mRenderables, mBlocking;
+	public Renderable[] mRenderables;
+	public Renderable mBlocking;
+	
 	public long mLastTime;
 	public float mLastTimeDeltaSec;
+	
 	public Vector3 mTmp;
 	
 	public VerletPhysics(GLSurfaceViewInput surfaceView) {

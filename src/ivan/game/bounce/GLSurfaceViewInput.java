@@ -12,7 +12,6 @@ import android.view.Surface;
 
 public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventListener {
 	private final short BALL_COUNT = 6;
-	private final short RECT_COUNT = (short)Math.floor(BALL_COUNT / 2);
 	
 	public GLRenderer mGLRenderer;
 	public VerletPhysics mPhysics;
@@ -40,7 +39,6 @@ public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventList
 		mGLRenderer = new GLRenderer(context, this);
 
 		GLSpriteBall[] ballSpriteArray = new GLSpriteBall[BALL_COUNT];
-		GLRectangle[] rectangleArray = new GLRectangle[RECT_COUNT];
 		Renderable[] renderableArray = new Renderable[BALL_COUNT];
 		
 		final short ballBucketSize = BALL_COUNT / 4;
@@ -56,7 +54,7 @@ public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventList
 				ball.MASS = 250;
 			} else {
 				ball = new GLSpriteBall(R.drawable.ball_dragon_32);
-				ball.MASS = 650;
+				ball.MASS = 1000;
 			}
 
 			final float r = ((float)Math.random() - 0.5f) * 0.2f;
@@ -66,23 +64,10 @@ public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventList
 			renderableArray[i] = ball;
 		}
 		
-		/*
-		for(short i = 0; i < RECT_COUNT; i++) {
-			float w = (float)(Math.random() * 64);
-			float h = (float)(Math.random() * 64);
-			
-			GLRectangle rect = new GLRectangle(w , h);
-			Log.i("Dimensions", "DIMENSIONS w: " + w + " / " + h);
-			rectangleArray[i] = rect;
-		}
-		*/
-		
 		mGLRenderer.mBallSprites = ballSpriteArray;
-		//mGLRenderer.mRectangles = rectangleArray;
 		setRenderer(mGLRenderer);
 		
 		mPhysics = new VerletPhysics(this);
-		mPhysics.mBlocking = rectangleArray;
 		mPhysics.mRenderables = renderableArray;
 		
 		Runtime r = Runtime.getRuntime();
@@ -133,17 +118,15 @@ public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventList
 		if(event.getAction() == MotionEvent.ACTION_MOVE) {	
         	queueEvent(new Runnable() {
             	public void run() {
-            		mGLRenderer.mTestRect.pos.x = x;
-            		mGLRenderer.mTestRect.pos.y = y;
+            		mGLRenderer.mBlockingRect.pos.x = x;
+            		mGLRenderer.mBlockingRect.pos.y = y;
             	}});
 		}
     	
 		if(event.getAction() == MotionEvent.ACTION_DOWN) {	
         	queueEvent(new Runnable() {
             	public void run() {
-					if(mGLRenderer.mAnimate)
-						mGLRenderer.mAnimate = false;
-					else
+					if(!mGLRenderer.mAnimate)
 						mGLRenderer.mAnimate = true;
             	}});
 		}
