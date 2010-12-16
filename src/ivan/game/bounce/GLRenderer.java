@@ -21,7 +21,7 @@ class GLRenderer implements GLSurfaceView.Renderer {
 	public GLSurfaceViewInput mSV;
 	
 	public GLSpriteBall[] mBallSprites;
-	public GLRectangle mBlockingRect;
+	public GLRectangle mBlock;
 	
 	public int[] mTextureNameWorkspace;
 	public int[] mCropWorkspace;
@@ -30,8 +30,6 @@ class GLRenderer implements GLSurfaceView.Renderer {
 	GLRenderer(Context context, GLSurfaceViewInput parentView) {
 		mContext = context;
 		mSV = parentView;
-		
-		mBlockingRect = new GLRectangle(32.0f, 64.0f);
 		
 		mTextureNameWorkspace = new int[1];
 		mCropWorkspace = new int[4];
@@ -59,7 +57,13 @@ class GLRenderer implements GLSurfaceView.Renderer {
 				mBallSprites[i].pos.y = (float)(Math.random() * (mSV.mViewHeight - mBallSprites[i].height));
 				mBallSprites[i].oldPos.x = mBallSprites[i].pos.x;
 				mBallSprites[i].oldPos.y = mBallSprites[i].pos.y;
+				mBallSprites[i].mRadius = (float)(mBallSprites[i].width / 2);
 			}
+		}
+		
+		if(mBlock != null) {
+			mBlock.pos.x = (float)(Math.random() * (mSV.mViewWidth - mBlock.width));
+			mBlock.pos.y = (float)(Math.random() * (mSV.mViewWidth - mBlock.height));
 		}
     }
 
@@ -72,13 +76,12 @@ class GLRenderer implements GLSurfaceView.Renderer {
 		gl.glMatrixMode(GL10.GL_PROJECTION);
 		gl.glLoadIdentity();
 		GLU.gluOrtho2D(gl, 0.0f, w, h, 0.0f);
+		
+		gl.glMatrixMode(GL10.GL_MODELVIEW);
     }
 
     public void onDrawFrame(GL10 gl) {
     	gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
-        gl.glMatrixMode(GL10.GL_MODELVIEW);
-        
-        mBlockingRect.draw(gl);
         
 		if(mAnimate)
 			mSV.queueEvent(mSV.mPhysics);        
@@ -86,7 +89,11 @@ class GLRenderer implements GLSurfaceView.Renderer {
 		if(mBallSprites != null) {
 			for(short i = 0; i < mBallSprites.length; i++)
 				mBallSprites[i].draw(gl);
-		}	
+		}
+		
+		if(mBlock != null) {
+			mBlock.draw(gl);
+		}
     }
 
 	/**

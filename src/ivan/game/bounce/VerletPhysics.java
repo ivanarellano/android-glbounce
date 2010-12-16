@@ -1,7 +1,7 @@
 package ivan.game.bounce;
 
 import android.os.SystemClock;
-//import android.util.Log;
+import android.util.Log;
 
 /* 
  * Acceleration = velocity / time
@@ -12,17 +12,20 @@ import android.os.SystemClock;
 
 public class VerletPhysics implements Runnable{
 	public GLSurfaceViewInput mSV;
-	public Renderable[] mRenderables;
-	public Renderable mBlocking;
+	public GLSpriteBall[] mRenderables;
+	public GLRectangle mBlock;
 	
 	public long mLastTime;
 	public float mLastTimeDeltaSec;
 	
-	public Vector3 mTmp;
+	public Vec2 mTmp, LineVec, VecToLine;
 	
 	public VerletPhysics(GLSurfaceViewInput surfaceView) {
 		mSV = surfaceView;
-		mTmp = new Vector3();
+		
+		mTmp = new Vec2();
+		LineVec = new Vec2();
+		VecToLine = new Vec2();
 	}
 	
 	public void run() {
@@ -35,16 +38,20 @@ public class VerletPhysics implements Runnable{
 				
 				if(mLastTimeDeltaSec != 0) {					
 					for(short i = 0; i < mRenderables.length; i++) {
-						Renderable obj1 = mRenderables[i];
+						GLSpriteBall obj1 = mRenderables[i];
 
 						// Force of gravity applied to obj
 						final float gravityX = -mSV.mSensorX * obj1.MASS;
 						final float gravityY = -mSV.mSensorY * obj1.MASS;
 						
 						computeVerletMethod(obj1, gravityX, gravityY, timeDeltaSeconds, mLastTimeDeltaSec);
-
+						obj1.mCenter.set(obj1.mRadius + obj1.pos.x, obj1.mRadius + obj1.pos.y);
+						
+						//Log.d("Physics", "mCenterY: "+ obj1.mCenter.y);
+						//Log.d("Physics", "obj1 X/Y: " + (short)obj1.pos.x + " / " + (short)obj1.pos.y);
+						
 						for(short j = (short)(i + 1); j < mRenderables.length; j++) {
-							Renderable obj2 = mRenderables[j];
+							GLSpriteBall obj2 = mRenderables[j];
 							
 							final float dx = obj2.pos.x - obj1.pos.x;
 							final float dy = obj2.pos.y - obj1.pos.y;
@@ -52,7 +59,7 @@ public class VerletPhysics implements Runnable{
 
 							if (dd <= (obj1.width * obj2.width)) {
 								final float d = (float)Math.sqrt(dd);
-						        final float c = (0.5f * (obj1.width - d)) / d;
+						        final float c = (0.5f * ((obj1.mRadius + obj2.mRadius) - d)) / d;
 								obj1.pos.x -= dx * c;	
 								obj1.pos.y -= dy * c;
 						        obj2.pos.x += dx * c;
@@ -61,6 +68,11 @@ public class VerletPhysics implements Runnable{
 							
 						}
 
+						float interceptTime = resolveBoxCollision(obj1);
+						if(interceptTime >= 0 && interceptTime <= 1) {
+							Log.i("Physics", "Intercepted!");
+						}
+						
 						resolveScreenCollision2(obj1);
 					}
 				}
@@ -146,5 +158,42 @@ public class VerletPhysics implements Runnable{
 			if(obj.accel.y < 0.0f)
 				obj.pos.y += collision * (obj.accel.y / 25.0f);			
 		}
-    }	
+    }
+    
+	public float resolveBoxCollision(GLSpriteBall obj) {
+		LineVec.set(mBlock.line.p2.x - mBlock.line.p1.x, mBlock.line.p2.y - mBlock.line.p1.y);
+		VecToLine.set(mBlock.line.p1.x - obj.mCenter.x, mBlock.line.p1.y - obj.mCenter.y);
+
+		//Log.d("Physics", "LinePos: (" + mBlock.c1.x + ", " + mBlock.c1.y + ")(" + mBlock.c2.x + ", " + mBlock.c2.y + ")");
+		//Log.d("LineVec", "(" + LineVec.x + ", " + LineVec.y + ")");
+		//Log.d("VecToLine", "(" + VecToLine.x + ", " + VecToLine.y + ")");
+		
+    	/* create a quadratic formula of the form ax^2 + bx + c = 0 */
+    	float a, b, c;
+    	float sqrtterm, res1, res2;
+
+    	a = LineVec.x*LineVec.x + LineVec.y*LineVec.y;
+    	b = 2 * ( VecToLine.x*LineVec.x + VecToLine.y*LineVec.y );
+    	c = ( VecToLine.x*VecToLine.x + VecToLine.y*VecToLine.y) - obj.mRadius*obj.mRadius;
+
+    	sqrtterm = b*b - 4*a*c;
+
+    	if(sqrtterm < 0) {
+    		// No collision
+    		return -1.0f;
+    	} else {
+	    	sqrtterm = (float) Math.sqrt(sqrtterm);
+	    	res1 = ( -b - sqrtterm ) / (2 * a);
+	    	res2 = ( -b + sqrtterm ) / (2 * a);
+	
+	    	if(res1 >= 0 && res1 <= 1) {
+	    		// A collision happened
+	    		return res1;
+	    	} else {
+	    		// "Out of range" of ray
+	    	}
+
+	    	return res2;
+    	}
+    }
 }

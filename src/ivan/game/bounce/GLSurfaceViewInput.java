@@ -11,11 +11,13 @@ import android.view.MotionEvent;
 import android.view.Surface;
 
 public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventListener {
-	private final short BALL_COUNT = 6;
+	private final short BALL_COUNT = 1;
 	
 	public GLRenderer mGLRenderer;
 	public VerletPhysics mPhysics;
 	public Display mDisplay;
+	
+	public GLRectangle mBlockingRect;
 	
 	// Sensor manager used to control the accelerometer sensor.
     public SensorManager mViewSensorManager;
@@ -39,7 +41,6 @@ public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventList
 		mGLRenderer = new GLRenderer(context, this);
 
 		GLSpriteBall[] ballSpriteArray = new GLSpriteBall[BALL_COUNT];
-		Renderable[] renderableArray = new Renderable[BALL_COUNT];
 		
 		final short ballBucketSize = BALL_COUNT / 4;
 		for(short i = 0; i < BALL_COUNT; i++) {
@@ -49,26 +50,25 @@ public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventList
 				ball = new GLSpriteBall(R.drawable.ball_blue_32);
 			} else if(i < ballBucketSize * 2) {
 				ball = new GLSpriteBall(R.drawable.ball_green_32);
-			} else if(i < ballBucketSize * 3) {
-				ball = new GLSpriteBall(R.drawable.ball_beach_32);
-				ball.MASS = 250;
 			} else {
 				ball = new GLSpriteBall(R.drawable.ball_dragon_32);
-				ball.MASS = 1000;
 			}
-
+			
 			final float r = ((float)Math.random() - 0.5f) * 0.2f;
             ball.COEFFICIENT_OF_RESTITUTION = 1.0f - 0.2f + r;
 
 			ballSpriteArray[i] = ball;
-			renderableArray[i] = ball;
 		}
 		
+		mBlockingRect = new GLRectangle(64.0f, 8.0f);
+		
 		mGLRenderer.mBallSprites = ballSpriteArray;
+		mGLRenderer.mBlock = mBlockingRect;
 		setRenderer(mGLRenderer);
 		
 		mPhysics = new VerletPhysics(this);
-		mPhysics.mRenderables = renderableArray;
+		mPhysics.mRenderables = ballSpriteArray;
+		mPhysics.mBlock = mBlockingRect;
 		
 		Runtime r = Runtime.getRuntime();
 		r.gc();
@@ -112,15 +112,14 @@ public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventList
     }
 
     public boolean onTouchEvent(final MotionEvent event) {
-		final float x = event.getX();
-        final float y = event.getY();
-    	
+		float x = event.getX();
+        float y = event.getY();
+        
 		if(event.getAction() == MotionEvent.ACTION_MOVE) {	
-        	queueEvent(new Runnable() {
-            	public void run() {
-            		mGLRenderer.mBlockingRect.pos.x = x;
-            		mGLRenderer.mBlockingRect.pos.y = y;
-            	}});
+            mBlockingRect.pos.x = x;
+            mBlockingRect.pos.y = y;
+            mBlockingRect.line.p1.set(x, y);
+            mBlockingRect.line.p2.set(x + mBlockingRect.width, y);
 		}
     	
 		if(event.getAction() == MotionEvent.ACTION_DOWN) {	

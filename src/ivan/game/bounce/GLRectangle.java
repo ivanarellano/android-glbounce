@@ -8,10 +8,14 @@ import javax.microedition.khronos.opengles.GL10;
 
 public class GLRectangle extends Renderable {
     public FloatBuffer mVerticesBuffer;
-    public ByteBuffer mIndicesBuffer;
+    public ByteBuffer mIndicesBuffer; 
 
+    public Line line;
+    
 	public GLRectangle(float w, float h) {
 		super();
+		
+		line = new Line();
 		
 		float rectangle[] = {
 			0.0f, 0.0f, 0.0f,
@@ -30,6 +34,8 @@ public class GLRectangle extends Renderable {
 		
 		width = (short)w;
 		height = (short)h;
+		
+		
 	}
 
     public FloatBuffer makeFloatBuffer(float[] vertices) {
@@ -66,4 +72,9 @@ public class GLRectangle extends Renderable {
 		
 		gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
 	}
+}
+
+class Line {
+	Vec2 p1 = new Vec2();
+	Vec2 p2 = new Vec2();
 }

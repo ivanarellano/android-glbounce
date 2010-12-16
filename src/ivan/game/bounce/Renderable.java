@@ -8,13 +8,13 @@ package ivan.game.bounce;
 public abstract class Renderable extends BasePhysics
 {
     // Position
-    public Vector3 pos = new Vector3();
+    public Vec2 pos = new Vec2();
     
 	// Last Position
-	public Vector3 oldPos = new Vector3();
+	public Vec2 oldPos = new Vec2();
 
     // Acceleration
-    public Vector3 accel = new Vector3();
+    public Vec2 accel = new Vec2();
     
     // Size
     public short width;
