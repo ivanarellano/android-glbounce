@@ -12,7 +12,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.opengl.GLSurfaceView;
-import android.opengl.GLU;
 import android.opengl.GLUtils;
 import android.util.Log;
 
@@ -75,9 +74,10 @@ class GLRenderer implements GLSurfaceView.Renderer {
 
 		gl.glMatrixMode(GL10.GL_PROJECTION);
 		gl.glLoadIdentity();
-		GLU.gluOrtho2D(gl, 0.0f, w, h, 0.0f);
+		gl.glOrthof(0.0f, w, 0.0f, h, -1.0f, 1.0f);
 		
 		gl.glMatrixMode(GL10.GL_MODELVIEW);
+		gl.glLoadIdentity();
     }
 
     public void onDrawFrame(GL10 gl) {

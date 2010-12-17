@@ -7,7 +7,6 @@ public class GLSpriteBall extends GLSprite {
 	public GLSpriteBall(int resourceId) {
 		super(resourceId);
 		
-		mCenter = new Vec2();
-		mCenter.set(mRadius + pos.x, mRadius + pos.y);
+		mCenter = new Vec2(mRadius + pos.x, mRadius + pos.y);
 	}
 }

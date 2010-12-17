@@ -44,34 +44,18 @@ public class VerletPhysics implements Runnable{
 						final float gravityX = -mSV.mSensorX * obj1.MASS;
 						final float gravityY = -mSV.mSensorY * obj1.MASS;
 						
-						computeVerletMethod(obj1, gravityX, gravityY, timeDeltaSeconds, mLastTimeDeltaSec);
-						obj1.mCenter.set(obj1.mRadius + obj1.pos.x, obj1.mRadius + obj1.pos.y);
+						//computeVerletMethod(obj1, gravityX, gravityY, timeDeltaSeconds, mLastTimeDeltaSec);
+						computeEulerMethod(obj1, gravityX, gravityY, timeDeltaSeconds);
 						
-						//Log.d("Physics", "mCenterY: "+ obj1.mCenter.y);
-						//Log.d("Physics", "obj1 X/Y: " + (short)obj1.pos.x + " / " + (short)obj1.pos.y);
+						obj1.mCenter.set(obj1.mRadius + obj1.pos.x, obj1.mRadius + obj1.pos.y);
 						
 						for(short j = (short)(i + 1); j < mRenderables.length; j++) {
 							GLSpriteBall obj2 = mRenderables[j];
 							
-							final float dx = obj2.pos.x - obj1.pos.x;
-							final float dy = obj2.pos.y - obj1.pos.y;
-							final float dd = dx * dx + dy * dy;
-
-							if (dd <= (obj1.width * obj2.width)) {
-								final float d = (float)Math.sqrt(dd);
-						        final float c = (0.5f * ((obj1.mRadius + obj2.mRadius) - d)) / d;
-								obj1.pos.x -= dx * c;	
-								obj1.pos.y -= dy * c;
-						        obj2.pos.x += dx * c;
-						        obj2.pos.y += dy * c;
-							}
-							
+							resolveBallToBallCollision(obj1, obj2);
 						}
 
-						float interceptTime = resolveBoxCollision(obj1);
-						if(interceptTime >= 0 && interceptTime <= 1) {
-							Log.i("Physics", "Intercepted!");
-						}
+						resolveBallToLineCollision(obj1);
 						
 						resolveScreenCollision2(obj1);
 					}
@@ -85,23 +69,36 @@ public class VerletPhysics implements Runnable{
 	}
 	
 	/*
+	 * More accurate Euler Integration (2nd order)
+	 * x = x + v * dt + 0.5f * a * dt * dt
+	 */
+	public void computeEulerMethod(Renderable obj, float gravityX, float gravityY, float dt) {
+		obj.pos.x += obj.accel.x * dt + 0.5f * gravityX * dt * dt;
+		obj.pos.y += obj.accel.y * dt + 0.5f * gravityY * dt * dt;
+		
+		obj.accel.x += gravityX * dt;
+		obj.accel.y += gravityY * dt;
+	}
+	
+	/*
 	 * Time-Corrected Verlet Integration
 	 * xi+1 = xi + (xi - xi-1) * (dti / dti-1) + a * dti * dti
 	 */	
-	public void computeVerletMethod(Renderable obj, float gravityX, float gravityY, float tDS, float tLDS) {
+	public void computeVerletMethod(Renderable obj, float gravityX, float gravityY, float dt, float lDT) {
 		mTmp.set(obj.pos);
 		
 		obj.accel.x = obj.pos.x - obj.oldPos.x;
 		obj.accel.y = obj.pos.y - obj.oldPos.y;
-		
-		obj.pos.x += obj.COEFFICIENT_OF_RESTITUTION * obj.accel.x * (tDS / tLDS) + gravityX * (tDS * tDS);
-		obj.pos.y += obj.COEFFICIENT_OF_RESTITUTION * obj.accel.y * (tDS / tLDS) + gravityY * (tDS * tDS);
+
+		obj.pos.x += obj.RESTITUTION * obj.accel.x * (dt / lDT) + gravityX * (dt * dt);
+		obj.pos.y += obj.RESTITUTION * obj.accel.y * (dt / lDT) + gravityY * (dt * dt);
 		
 		obj.oldPos.set(mTmp);
 	}	
 	
 	/*
 	 * Checks collision of the obj with the screen size.
+	 * Does not bounce when it hits the boundaries.
 	 */
     public void resolveScreenCollision(Renderable obj) {
         final short xmax = (short) (mSV.mViewWidth - obj.width);
@@ -111,66 +108,80 @@ public class VerletPhysics implements Runnable{
 
         if (x > xmax) {
             obj.pos.x = xmax;
+            obj.accel.x = 0.0f;
 		} else if (x < 0.0f) {
 			obj.pos.x = 0.0f;
+			obj.accel.x = 0.0f;
 		}
 
         if (y > ymax) {
             obj.pos.y = ymax;
+            obj.accel.y = 0.0f;
 		} else if (y < 0.0f) {
-			obj.pos.y = 0.0f;		
+			obj.pos.y = 0.0f;	
+			obj.accel.y = 0.0f;
 		}
     }
 
 	/*
 	 * Checks collision of the obj with the screen size.
-	 * Creates spring energy to push it back in the screen.
+	 * Reverses acceleration to pull obj back into screen.
 	 */
     public void resolveScreenCollision2(Renderable obj) {
         final short xmax = (short) (mSV.mViewWidth - obj.width);
         final short ymax = (short) (mSV.mViewHeight - obj.height);
-        final float x = obj.pos.x;
-        final float y = obj.pos.y;
 
-		// Kinetic energy: 1/2(m)(v2)
-		final float collision = 0.5f * obj.width;
-		
-        if (x > xmax) {
-            obj.pos.x = xmax;
-			
-			if(obj.accel.x >= 0.1f)
-				obj.pos.x += collision * (obj.accel.x / 25.0f);
-		} else if (x < 0.0f) {
-			obj.pos.x = 0.0f;
-			
-			if(obj.accel.x < 0.0f)
-				obj.pos.x += collision * (obj.accel.x / 25.0f);
-		}
-
-        if (y > ymax) {
-            obj.pos.y = ymax;
-
-			if(obj.accel.y >= 0.1f)
-				obj.pos.y += collision * (obj.accel.y / 25.0f);
-		} else if (y < 0.0f) {
-			obj.pos.y = 0.0f;
-			
-			if(obj.accel.y < 0.0f)
-				obj.pos.y += collision * (obj.accel.y / 25.0f);			
-		}
-    }
+        // Bounce.
+        if ((obj.pos.x < 0.0f && obj.accel.x < 0.0f) || (obj.pos.x > xmax && obj.accel.x > 0.0f)) {
+        	
+            obj.accel.x = -obj.accel.x * obj.RESTITUTION;
+            obj.pos.x = Math.max(0.0f, Math.min(obj.pos.x, xmax));
+            
+            if (Math.abs(obj.accel.x) < 5.0f) {
+                obj.accel.x = 0.0f;
+            }
+        }
+        
+        if ((obj.pos.y < 0.0f && obj.accel.y < 0.0f) || (obj.pos.y > ymax && obj.accel.y > 0.0f)) {
+            
+        	obj.accel.y = -obj.accel.y * obj.RESTITUTION;
+            obj.pos.y = Math.max(0.0f, Math.min(obj.pos.y, ymax));
+            
+            if (Math.abs(obj.accel.y) < 5.0f) {
+                obj.accel.y = 0.0f;
+            }
+        }
+    }   
     
-	public float resolveBoxCollision(GLSpriteBall obj) {
+	public void resolveBallToBallCollision(GLSpriteBall ball1, GLSpriteBall ball2) {
+		final float dx = ball2.pos.x - ball1.pos.x;
+		final float dy = ball2.pos.y - ball1.pos.y;
+
+	    float sumRadius = ball1.mRadius + ball2.mRadius;
+	    float sqrRadius = sumRadius * sumRadius;
+
+	    float distSqr = dx * dx + dy * dy;
+	    
+	    if (distSqr <= sqrRadius) {
+	        // Balls collided
+	    	
+	        float d = (float)Math.sqrt(distSqr);
+	        float c = ((ball1.mRadius + ball2.mRadius) - d) / d;
+	        
+	        ball1.pos.x -= dx * c;
+	        ball1.pos.y -= dy * c;
+	        ball2.pos.x += dx * c;
+	        ball2.pos.y += dy * c;
+	    }
+	}	
+    
+	public void resolveBallToLineCollision(GLSpriteBall obj) {
 		LineVec.set(mBlock.line.p2.x - mBlock.line.p1.x, mBlock.line.p2.y - mBlock.line.p1.y);
 		VecToLine.set(mBlock.line.p1.x - obj.mCenter.x, mBlock.line.p1.y - obj.mCenter.y);
 
-		//Log.d("Physics", "LinePos: (" + mBlock.c1.x + ", " + mBlock.c1.y + ")(" + mBlock.c2.x + ", " + mBlock.c2.y + ")");
-		//Log.d("LineVec", "(" + LineVec.x + ", " + LineVec.y + ")");
-		//Log.d("VecToLine", "(" + VecToLine.x + ", " + VecToLine.y + ")");
-		
-    	/* create a quadratic formula of the form ax^2 + bx + c = 0 */
+    	// create a quadratic formula of the form ax^2 + bx + c = 0
     	float a, b, c;
-    	float sqrtterm, res1, res2;
+    	float sqrtterm, res1; // res2
 
     	a = LineVec.x*LineVec.x + LineVec.y*LineVec.y;
     	b = 2 * ( VecToLine.x*LineVec.x + VecToLine.y*LineVec.y );
@@ -180,20 +191,17 @@ public class VerletPhysics implements Runnable{
 
     	if(sqrtterm < 0) {
     		// No collision
-    		return -1.0f;
     	} else {
 	    	sqrtterm = (float) Math.sqrt(sqrtterm);
 	    	res1 = ( -b - sqrtterm ) / (2 * a);
-	    	res2 = ( -b + sqrtterm ) / (2 * a);
+	    	//res2 = ( -b + sqrtterm ) / (2 * a);
 	
 	    	if(res1 >= 0 && res1 <= 1) {
 	    		// A collision happened
-	    		return res1;
+	    		obj.accel.y = -obj.accel.y * obj.RESTITUTION;
 	    	} else {
 	    		// "Out of range" of ray
 	    	}
-
-	    	return res2;
     	}
     }
 }

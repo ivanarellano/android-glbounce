@@ -6,12 +6,13 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.opengl.GLSurfaceView;
+import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.Surface;
 
 public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventListener {
-	private final short BALL_COUNT = 1;
+	private final short BALL_COUNT = 2;
 	
 	public GLRenderer mGLRenderer;
 	public VerletPhysics mPhysics;
@@ -48,6 +49,7 @@ public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventList
 			
 			if(i < ballBucketSize) {
 				ball = new GLSpriteBall(R.drawable.ball_blue_32);
+				ball.MASS = 400;
 			} else if(i < ballBucketSize * 2) {
 				ball = new GLSpriteBall(R.drawable.ball_green_32);
 			} else {
@@ -55,7 +57,7 @@ public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventList
 			}
 			
 			final float r = ((float)Math.random() - 0.5f) * 0.2f;
-            ball.COEFFICIENT_OF_RESTITUTION = 1.0f - 0.2f + r;
+            ball.RESTITUTION = 1.0f - 0.3f + r;
 
 			ballSpriteArray[i] = ball;
 		}
@@ -112,14 +114,15 @@ public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventList
     }
 
     public boolean onTouchEvent(final MotionEvent event) {
-		float x = event.getX();
-        float y = event.getY();
+		float sX = event.getX();
+        float sY = event.getY();
+        float oglY = mViewHeight - sY;
         
 		if(event.getAction() == MotionEvent.ACTION_MOVE) {	
-            mBlockingRect.pos.x = x;
-            mBlockingRect.pos.y = y;
-            mBlockingRect.line.p1.set(x, y);
-            mBlockingRect.line.p2.set(x + mBlockingRect.width, y);
+            mBlockingRect.pos.x = sX;
+            mBlockingRect.pos.y = oglY;
+            mBlockingRect.line.p1.set(sX, oglY);
+            mBlockingRect.line.p2.set(sX + mBlockingRect.width, oglY);
 		}
     	
 		if(event.getAction() == MotionEvent.ACTION_DOWN) {	
