@@ -1,5 +1,8 @@
 package ivan.game.bounce;
 
+/**
+ * Basic physics variables
+ */
 public class BasePhysics {
 	public float RESTITUTION;
     public float FRICTION;

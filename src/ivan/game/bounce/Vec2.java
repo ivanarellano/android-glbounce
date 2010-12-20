@@ -2,6 +2,9 @@ package ivan.game.bounce;
 
 import android.util.Log;
 
+/*
+ * 2D Vector with common functions
+ */
 public class Vec2 {
     public float x;
     public float y;
@@ -26,7 +29,7 @@ public class Vec2 {
     	else return false;
     }
     
-    public float length() {
+    public final float length() {
     	return (float) Math.sqrt(length2());
     }
 
@@ -55,8 +58,8 @@ public class Vec2 {
     }
     
     public final void set(Vec2 v) {
-    	this.x = v.x;
-    	this.y = v.y;
+    	x = v.x;
+    	y = v.y;
     }    
 
     public final void print(String tag, String msg) {
@@ -73,8 +76,8 @@ public class Vec2 {
     }   
 
     public final void add(float x, float y) {
-    	x += x;
-    	y += y;
+    	this.x += x;
+    	this.y += y;
     }    
     
     public final void subtract(Vec2 v) {

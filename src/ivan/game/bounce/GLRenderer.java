@@ -15,15 +15,24 @@ import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
 import android.util.Log;
 
+/**
+ * Renders on a dedicated thread and does the actual rendering.
+ */
 class GLRenderer implements GLSurfaceView.Renderer {
+	// Helper for resource import stream
 	public Context mContext;
+	
+	// Reference to parent view
 	public GLSurfaceViewInput mSV;
 	
+	// Contains balls and block to draw
 	public GLSpriteBall[] mBallSprites;
 	public GLRectangle mBlock;
 	
+	// Temporary texture storage
 	public int[] mTextureNameWorkspace;
 	public int[] mCropWorkspace;
+	
 	public boolean mAnimate;
 
 	GLRenderer(Context context, GLSurfaceViewInput parentView) {
@@ -48,18 +57,21 @@ class GLRenderer implements GLSurfaceView.Renderer {
 
         gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT, GL10.GL_FASTEST);
 
+        // For every ball in the array, load its texture, set its position,
+        // and give it a radius. OldPos vector is for a Verlet integrator.
 		if(mBallSprites != null) {
-			for(short i = 0; i < mBallSprites.length; i++) {
-				mBallSprites[i].mTextureHandle = loadGLTexture(gl, mContext, mBallSprites[i]);
+			for(GLSpriteBall b1 : mBallSprites) {
+				b1.mTextureHandle = loadGLTexture(gl, mContext, b1);
 				
-				mBallSprites[i].pos.x = (float)(Math.random() * (mSV.mViewWidth - mBallSprites[i].width));
-				mBallSprites[i].pos.y = (float)(Math.random() * (mSV.mViewHeight - mBallSprites[i].height));
-				mBallSprites[i].oldPos.x = mBallSprites[i].pos.x;
-				mBallSprites[i].oldPos.y = mBallSprites[i].pos.y;
-				mBallSprites[i].mRadius = (float)(mBallSprites[i].width / 2);
+				b1.pos.x = (float)(Math.random() * (mSV.mViewWidth - b1.width));
+				b1.pos.y = (float)(Math.random() * (mSV.mViewHeight - b1.height));
+				b1.oldPos.x = b1.pos.x;
+				b1.oldPos.y = b1.pos.y;
+				b1.mRadius = (float)(b1.width / 2);
 			}
 		}
 		
+		// Randomly place the blocking line on the screen
 		if(mBlock != null) {
 			mBlock.pos.x = (float)(Math.random() * (mSV.mViewWidth - mBlock.width));
 			mBlock.pos.y = (float)(Math.random() * (mSV.mViewWidth - mBlock.height));
@@ -74,7 +86,7 @@ class GLRenderer implements GLSurfaceView.Renderer {
 
 		gl.glMatrixMode(GL10.GL_PROJECTION);
 		gl.glLoadIdentity();
-		gl.glOrthof(0.0f, w, 0.0f, h, -1.0f, 1.0f);
+		gl.glOrthof(0.0f, w, 0.0f, h, -1.0f, 1.0f); // 2D projection
 		
 		gl.glMatrixMode(GL10.GL_MODELVIEW);
 		gl.glLoadIdentity();
@@ -83,14 +95,17 @@ class GLRenderer implements GLSurfaceView.Renderer {
     public void onDrawFrame(GL10 gl) {
     	gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
         
+    	// Run Physics
 		if(mAnimate)
 			mSV.queueEvent(mSV.mPhysics);        
         
+		// Draw Balls
 		if(mBallSprites != null) {
-			for(short i = 0; i < mBallSprites.length; i++)
-				mBallSprites[i].draw(gl);
+			for(GLSpriteBall b1 : mBallSprites)
+				b1.draw(gl);
 		}
 		
+		// Draw Blocking Line
 		if(mBlock != null) {
 			mBlock.draw(gl);
 		}
@@ -101,7 +116,7 @@ class GLRenderer implements GLSurfaceView.Renderer {
 	 * 
 	 * @param gl - The GL Context
 	 * @param context - The Activity context
-	 * @param resourceID - The texture from the resource directory
+	 * @param obj - The GLSprite with a resource pre-loaded
 	 */
 	public int loadGLTexture(GL10 gl, Context context, GLSprite obj) {
 		int resourceID = obj.mResourceID;
@@ -121,9 +136,11 @@ class GLRenderer implements GLSurfaceView.Renderer {
 
             gl.glTexEnvf(GL10.GL_TEXTURE_ENV, GL10.GL_TEXTURE_ENV_MODE, GL10.GL_REPLACE);
 
+            // Fetch resource
 			InputStream is = context.getResources().openRawResource(resourceID);
 			Bitmap bitmap = null;
 			
+			// Test for a valid resource
 			try {
 				bitmap = BitmapFactory.decodeStream(is);
 	
@@ -143,6 +160,7 @@ class GLRenderer implements GLSurfaceView.Renderer {
             mCropWorkspace[2] = bitmap.getWidth();
             mCropWorkspace[3] = -bitmap.getHeight();
 
+            // Store object width and height according to image dimensions
 			obj.width = (short)bitmap.getWidth();
 			obj.height = (short)bitmap.getHeight();
 			
