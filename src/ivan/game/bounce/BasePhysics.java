@@ -10,7 +10,7 @@ public class BasePhysics {
 	
 	public BasePhysics() {
 		RESTITUTION = 0.8f;
-		FRICTION = 0.7f;
+		FRICTION = 0.925f;
 		MASS = 200.0f;
 	}
 }

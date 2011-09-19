@@ -12,10 +12,10 @@ public abstract class Renderable extends BasePhysics
     
 	// Last Position
 	public Vec2 oldPos = new Vec2();
-
-    // Acceleration
-    public Vec2 accel = new Vec2();
     
+    // Velocity
+    public Vec2 vel = new Vec2();
+	
     // Size
     public short width;
     public short height;

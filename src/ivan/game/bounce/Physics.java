@@ -1,6 +1,7 @@
 package ivan.game.bounce;
 
 import android.os.SystemClock;
+import android.util.Log;
 
 /**
  * Physics engine that detects and responds to collisions between ball to screen,
@@ -44,30 +45,11 @@ public class Physics implements Runnable {
 					for(short i = 0; i < mRendLength; i++) {
 						GLSpriteBall b1 = mRenderables[i];
 
-						// Force of gravity applied to object (F = Accel * Mass)
 						// Acceleration is gauged by screen's tilt angle
 						final float gravityX = -mSV.mSensorX * b1.MASS;
 						final float gravityY = -mSV.mSensorY * b1.MASS;
-						
-						// Euler integrator
-						computeEulerMethod(b1, gravityX, gravityY, timeDeltaSeconds);
-						
-						// Update the location of the center of the ball
-						b1.mCenter.x = b1.mRadius + b1.pos.x;
-						b1.mCenter.y = b1.mRadius + b1.pos.y;
-						
-						// Check collision with every other ball to current ball
-						for(short j = (short)(i + 1); j < mRendLength; j++) {
-							GLSpriteBall b2 = mRenderables[j];
-							
-							resolveBallToBallCollision(b1, b2);
-						}
 
-						// Check collision with current ball to a line
-						resolveBallToLineCollision(b1);
-						
-						// Check collision with current ball and the screen
-						resolveScreenCollision2(b1);
+						computeVerletMethod(b1, gravityX, gravityY, timeDeltaSeconds, mLastTimeDeltaSec);
 					}
 				}
 				
@@ -77,21 +59,7 @@ public class Physics implements Runnable {
 			mLastTime = time;
 		}
 	}
-	
-	/*
-	 * More accurate Euler Integration (2nd order)
-	 * x = x + v * dt + 0.5f * a * dt * dt
-	 */
-	public void computeEulerMethod(Renderable obj, float gravityX, float gravityY, float dt) {
-		obj.pos.x += obj.accel.x * dt + 0.5f * gravityX * dt * dt;
-		obj.pos.y += obj.accel.y * dt + 0.5f * gravityY * dt * dt;
-		
-		// Create momentum
-		// M = Mass * Velocity
-		obj.accel.x += gravityX * dt;
-		obj.accel.y += gravityY * dt;
-	}
-	
+
 	/*
 	 * Time-Corrected Verlet Integration
 	 * xi+1 = xi + (xi - xi-1) * (dti / dti-1) + a * dti * dti
@@ -100,85 +68,45 @@ public class Physics implements Runnable {
 		mTmp.x = obj.pos.x;
 		mTmp.y = obj.pos.y;
 		
-		obj.accel.x = obj.pos.x - obj.oldPos.x;
-		obj.accel.y = obj.pos.y - obj.oldPos.y;
-
-		obj.pos.x += obj.RESTITUTION * obj.accel.x * (dt / lDT) + gravityX * (dt * dt);
-		obj.pos.y += obj.RESTITUTION * obj.accel.y * (dt / lDT) + gravityY * (dt * dt);
+		obj.vel.x = obj.pos.x - obj.oldPos.x;
+		obj.vel.y = obj.pos.y - obj.oldPos.y;
+		Log.d("1.", "vel.y: " + obj.vel.y); 
+		
+		resolveScreenCollision(obj);
+		
+		obj.pos.x += obj.FRICTION * (dt / lDT) * obj.vel.x + gravityX * (dt * dt);
+		obj.pos.y += obj.FRICTION * (dt / lDT) * obj.vel.y + gravityY * (dt * dt);
 		
 		obj.oldPos.x = mTmp.x;
 		obj.oldPos.y = mTmp.y;
+		
+		Log.d("2.", "p.y: " + obj.pos.y + " /op.y: " + obj.oldPos.y + " /dt: " + dt + " /ldt: " + lDT);
 	}	
 	
-	/*
-	 * Detects collision between the ball and the screen.
-	 * Responds by stopping the ball's acceleration.
-	 */
     public void resolveScreenCollision(Renderable obj) {
         final short xmax = (short) (mSV.mViewWidth - obj.width);
         final short ymax = (short) (mSV.mViewHeight - obj.height);
         final float x = obj.pos.x;
         final float y = obj.pos.y;
 
-        // Detect if ball is beyond left or right sides of screen
-        // and stop the ball's acceleration
         if (x > xmax) {
-            obj.pos.x = xmax;
-            obj.accel.x = 0.0f;
-		} else if (x < 0.0f) {
-			obj.pos.x = 0.0f;
-			obj.accel.x = 0.0f;
-		}
 
-        // Detect if ball is beyond top or bottom sides of screen
-        // and stop the ball's acceleration        
+		} else if (x < 0.0f) {
+
+		}
+      
         if (y > ymax) {
-            obj.pos.y = ymax;
-            obj.accel.y = 0.0f;
-		} else if (y < 0.0f) {
-			obj.pos.y = 0.0f;	
-			obj.accel.y = 0.0f;
+        	// ...
+		} else if (y < 0.5f) {
+			if(Math.abs(obj.vel.y) > 2.5f) {
+				float imp = (obj.MASS * (obj.vel.y * obj.vel.y) / 2) * obj.RESTITUTION / obj.MASS;
+				obj.vel.y += imp;
+				Log.d("bounce", "imp: " + imp);
+			} else {
+				obj.vel.y = obj.pos.y = obj.oldPos.y = mTmp.y = 0.0f;
+			}
 		}
     }
-
-	/*
-	 * Detects collision between the ball and the screen.
-	 * Responds with reversing acceleration of the ball.
-	 */
-    public void resolveScreenCollision2(Renderable obj) {
-        final short xmax = (short) (mSV.mViewWidth - obj.width);
-        final short ymax = (short) (mSV.mViewHeight - obj.height);
-
-        // Bounce horizontally against left or right of screen
-        if ((obj.pos.x < 0.0f && obj.accel.x < 0.0f) || (obj.pos.x > xmax && obj.accel.x > 0.0f)) {
-        	
-        	// Reverse X acceleration and slow it down
-            obj.accel.x = -obj.accel.x * obj.RESTITUTION;
-            
-            // Determines where to stop the ball at, 0 or xmax
-            obj.pos.x = Math.max(0.0f, Math.min(obj.pos.x, xmax));
-            
-            // Stop the ball from bouncing if it's too slow
-            if (Math.abs(obj.accel.x) < 5.0f) {
-                obj.accel.x = 0.0f;
-            }
-        }
-        
-        // Bounce vertically against top or bottom of screen
-        if ((obj.pos.y < 0.0f && obj.accel.y < 0.0f) || (obj.pos.y > ymax && obj.accel.y > 0.0f)) {
-            
-        	// Reverse Y acceleration and slow it down
-        	obj.accel.y = -obj.accel.y * obj.RESTITUTION;
-        	
-        	// Determines where to stop the ball at, 0 or ymax
-            obj.pos.y = Math.max(0.0f, Math.min(obj.pos.y, ymax));
-            
-            // Stop the ball from bouncing if it's too slow
-            if (Math.abs(obj.accel.y) < 5.0f) {
-                obj.accel.y = 0.0f;
-            }
-        }
-    }   
     
     /*
      * Detects collision between two balls.
@@ -215,7 +143,7 @@ public class Physics implements Runnable {
     
 	/*
 	 * Detects collision between a ball and line.
-	 * Responds by accelerating the ball in the opposite direction.
+	 * Responds by velerating the ball in the opposite direction.
 	 */
 	public void resolveBallToLineCollision(GLSpriteBall obj) {
 		LineVec.x = mBlock.line.p2.x - mBlock.line.p1.x;
@@ -245,8 +173,8 @@ public class Physics implements Runnable {
 	    	if(res1 >= 0 && res1 <= 1) {
 	    		// A collision happened
 	    		
-	    		// Reverse Y acceleration and slow it down
-	    		obj.accel.y = -obj.accel.y * obj.RESTITUTION;
+	    		// Reverse Y veleration and slow it down
+	    		obj.vel.y = -obj.vel.y * obj.RESTITUTION;
 	    	} else {
 	    		// "Out of range" of ray
 	    	}

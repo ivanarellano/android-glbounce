@@ -15,7 +15,7 @@ import android.view.Surface;
  * Also implements 
  */
 public class GLSurfaceViewInput extends GLSurfaceView implements SensorEventListener {
-	private final short BALL_COUNT = 5;
+	private final short BALL_COUNT = 1;
 	
 	// OpenGL renderer with rendering loop
 	public GLRenderer mGLRenderer;
